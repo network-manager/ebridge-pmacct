@@ -1,31 +1,3 @@
-/*******************************************************************************
- * This file is part of OpenNMS(R).
- *
- * Copyright (C) 2006-2011 The OpenNMS Group, Inc.
- * OpenNMS(R) is Copyright (C) 1999-2011 The OpenNMS Group, Inc.
- *
- * OpenNMS(R) is a registered trademark of The OpenNMS Group, Inc.
- *
- * OpenNMS(R) is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * OpenNMS(R) is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with OpenNMS(R).  If not, see:
- *      http://www.gnu.org/licenses/
- *
- * For more information contact:
- *     OpenNMS(R) Licensing <license@opennms.org>
- *     http://www.opennms.org/
- *     http://www.opennms.com/
- *******************************************************************************/
-
 package org.opennms.netmgt.config;
 
 import java.io.File;
@@ -38,17 +10,17 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.exolab.castor.xml.MarshalException;
 import org.exolab.castor.xml.ValidationException;
-import org.opennms.core.utils.ThreadCategory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.opennms.netmgt.config.pmacctdatacollection.PmacctCollection;
 import org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig;
 import org.opennms.core.xml.CastorUtils;
 import org.opennms.netmgt.model.RrdRepository;
 
 /**
- * <p>PmacctCollectionConfigFactory class.</p>
+ * <p>PmacctCollectionConfigFactory</p>
  * 
- * @author <a href="mailto:david@opennms.org">David Hustace</a>
- * @author <a href="mailto:yann@atomes.com">Yann Vigara</a>
+ * @author <a href="mailto:david@ebridgeai.com">David Tekeshe</a>
  * @version $Id: $
  */
 public class PmacctCollectionConfigFactory {
@@ -65,6 +37,8 @@ public class PmacctCollectionConfigFactory {
     protected static long m_lastModified;
 
     private static PmacctDatacollectionConfig m_config;
+
+    private static final Logger LOG = LoggerFactory.getLogger(PmacctCollectionConfigFactory.class);
 
     /**
      * <p>Constructor for PmacctCollectionConfigFactory.</p>
@@ -98,7 +72,7 @@ public class PmacctCollectionConfigFactory {
     }
 
     private void initialize(InputStream stream) throws MarshalException, ValidationException {
-        log().debug("initialize: initializing pmacct collection config factory.");
+        LOG.debug("initialize: initializing pmacct collection config factory.");
         m_config = CastorUtils.unmarshal(PmacctDatacollectionConfig.class, stream, false);
     }
 
@@ -192,10 +166,6 @@ public class PmacctCollectionConfigFactory {
      */
     public synchronized static void setConfig(PmacctDatacollectionConfig m_config) {
         PmacctCollectionConfigFactory.m_config = m_config;
-    }
-
-    private ThreadCategory log() {
-        return ThreadCategory.getInstance();
     }
 
     /**

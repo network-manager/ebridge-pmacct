@@ -1,5 +1,6 @@
 package org.opennms.netmgt.collectd;
 
+import org.opennms.netmgt.collection.api.AbstractRemoteServiceCollector;
 import java.beans.PropertyVetoException;
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,14 +39,26 @@ import org.opennms.netmgt.config.pmacctdatacollection.Attrib;
 import org.opennms.netmgt.config.pmacctdatacollection.PmacctCollection;
 import org.opennms.netmgt.model.RrdRepository;
 import org.opennms.netmgt.model.events.EventProxy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Collect data via PMAcct
  * 
+ * @author <a href="mailto:david@opennms.org">David Hustace</a>
+ * @version $Id: $
  */
-public class PmacctCollector implements ServiceCollector {
+// public class PmacctCollector implements ServiceCollector {
+public class PmacctCollector implements AbstractRemoteServiceCollector {
 
-    private NumberFormat parser = null;
+    private static final Logger LOG = 
+	    LoggerFactory.getLogger(PmacctCollector.class);
+
+    private static final NumberFormat PARSER;
+    static {
+       PARSER = NumberFormat.getNumberInstance();
+       ((DecimalFormat)PARSER).setParseBigDecimal(true);
+    }
 
     private NumberFormat rrdFormatter = null;
 
@@ -55,8 +68,6 @@ public class PmacctCollector implements ServiceCollector {
      * </p>
      */
     public PmacctCollector() {
-        parser = NumberFormat.getNumberInstance();
-        ((DecimalFormat) parser).setParseBigDecimal(true);
 
         rrdFormatter = NumberFormat.getNumberInstance();
         rrdFormatter.setMinimumFractionDigits(0);
@@ -80,17 +91,11 @@ public class PmacctCollector implements ServiceCollector {
     }
 
     protected class PmacctCollectionSet implements CollectionSet {
-
         private CollectionAgent m_agent;
-
         private Map<String, Object> m_parameters;
-
         private int m_status;
-
         private PmacctCollection m_collection;
-
         private String mPmacctPath;
-
         private List<PmacctCollectionResource> m_collectionResourceList;
         
         private Date m_timestamp;

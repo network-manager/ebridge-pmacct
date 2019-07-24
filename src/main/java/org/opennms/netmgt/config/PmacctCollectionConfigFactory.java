@@ -8,14 +8,12 @@ import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.exolab.castor.xml.MarshalException;
-import org.exolab.castor.xml.ValidationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opennms.core.xml.JaxbUtils;
 import org.opennms.netmgt.config.pmacctdatacollection.PmacctCollection;
 import org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig;
-import org.opennms.core.xml.CastorUtils;
-import org.opennms.netmgt.model.RrdRepository;
+import org.opennms.netmgt.rrd.RrdRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>PmacctCollectionConfigFactory</p>
@@ -25,6 +23,9 @@ import org.opennms.netmgt.model.RrdRepository;
  */
 public class PmacctCollectionConfigFactory {
 
+    private static final Logger LOG
+	    = LoggerFactory.getLogger(PmacctCollectionConfigFactory.class);
+
     /** The singleton instance. */
     private static PmacctCollectionConfigFactory m_instance;
 
@@ -33,22 +34,20 @@ public class PmacctCollectionConfigFactory {
     /** Boolean indicating if the init() method has been called. */
     protected boolean initialized = false;
 
-    /** Timestamp of the pmacct collection config, used to know when to reload from disk. */
+    /** Timestamp of the pmacct collection config,
+     * used to know when to reload from disk. */
     protected static long m_lastModified;
 
     private static PmacctDatacollectionConfig m_config;
-
-    private static final Logger LOG = LoggerFactory.getLogger(PmacctCollectionConfigFactory.class);
 
     /**
      * <p>Constructor for PmacctCollectionConfigFactory.</p>
      *
      * @param configFile a {@link java.lang.String} object.
-     * @throws org.exolab.castor.xml.MarshalException if any.
-     * @throws org.exolab.castor.xml.ValidationException if any.
      * @throws java.io.IOException if any.
      */
-    public PmacctCollectionConfigFactory(String configFile) throws MarshalException, ValidationException, IOException {
+    public PmacctCollectionConfigFactory(String configFile)
+		  throws IOException {
         InputStream is = null;
         try {
             is = new FileInputStream(configFile);
@@ -64,16 +63,19 @@ public class PmacctCollectionConfigFactory {
      * <p>Constructor for PmacctCollectionConfigFactory.</p>
      *
      * @param stream a {@link java.io.InputStream} object.
-     * @throws org.exolab.castor.xml.MarshalException if any.
-     * @throws org.exolab.castor.xml.ValidationException if any.
      */
-    public PmacctCollectionConfigFactory(InputStream stream) throws MarshalException, ValidationException {
+    public PmacctCollectionConfigFactory(InputStream stream)
+		  throws IOException { 
         initialize(stream);
     }
 
-    private void initialize(InputStream stream) throws MarshalException, ValidationException {
+    private void initialize(InputStream stream)
+		   throws IOException {
         LOG.debug("initialize: initializing pmacct collection config factory.");
-        m_config = CastorUtils.unmarshal(PmacctDatacollectionConfig.class, stream, false);
+	try (InputStreamReader isr = new InputStreamReader(stream)) { 
+           m_config = JaxbUtils
+		         .unmarshal(PmacctDatacollectionConfig.class, isr);
+	}
     }
 
     /**
@@ -81,13 +83,14 @@ public class PmacctCollectionConfigFactory {
      *
      * @throws java.io.IOException if any.
      * @throws java.io.FileNotFoundException if any.
-     * @throws org.exolab.castor.xml.MarshalException if any.
-     * @throws org.exolab.castor.xml.ValidationException if any.
      */
-    public static synchronized void init() throws IOException, FileNotFoundException, MarshalException, ValidationException {
+    public static synchronized void init()
+		    throws IOException, FileNotFoundException {
 
         if (m_instance == null) {
-            File cfgFile = PmacctConfigFileConstants.getFile(PmacctConfigFileConstants.PMACCT_COLLECTION_CONFIG_FILE_NAME);
+            File cfgFile 
+		    = PmacctConfigFileConstants.getFile(
+		         PmacctConfigFileConstants.PMACCT_COLLECTION_CONFIG_FILE_NAME);
             m_instance = new PmacctCollectionConfigFactory(cfgFile.getPath());
             m_lastModified = cfgFile.lastModified();
             m_loadedFromFile = true;
@@ -104,7 +107,9 @@ public class PmacctCollectionConfigFactory {
     public static synchronized PmacctCollectionConfigFactory getInstance() {
 
         if (m_instance == null) {
-            throw new IllegalStateException("You must call PmacctCollectionConfigFactory.init() before calling getInstance().");
+            throw new IllegalStateException(
+	       "You must call PmacctCollectionConfigFactory.init()"+
+	           " before calling getInstance().");
         }
         return m_instance;
     }
@@ -112,9 +117,12 @@ public class PmacctCollectionConfigFactory {
     /**
      * <p>setInstance</p>
      *
-     * @param instance a {@link org.opennms.netmgt.config.PmacctCollectionConfigFactory} object.
+     * @param instance a 
+     *        {@link org.opennms.netmgt.config.PmacctCollectionConfigFactory}
+     *        object.
      */
-    public static synchronized void setInstance(PmacctCollectionConfigFactory instance) {
+    public static synchronized void setInstance(
+		    PmacctCollectionConfigFactory instance) {
         m_instance = instance;
         m_loadedFromFile = false;
     }
@@ -124,26 +132,25 @@ public class PmacctCollectionConfigFactory {
      *
      * @throws java.io.IOException if any.
      * @throws java.io.FileNotFoundException if any.
-     * @throws org.exolab.castor.xml.MarshalException if any.
-     * @throws org.exolab.castor.xml.ValidationException if any.
      */
-    public synchronized void reload() throws IOException, FileNotFoundException, MarshalException, ValidationException {
+    public synchronized void reload()
+		    throws IOException, FileNotFoundException {
         m_instance = null;
         init();
     }
 
-
     /**
-     * Reload the pmacct-datacollection-config.xml file if it has been changed since we last
-     * read it.
+     * Reload the pmacct-datacollection-config.xml file 
+     * if it has been changed since we last read it.
      *
      * @throws java.io.IOException if any.
-     * @throws org.exolab.castor.xml.MarshalException if any.
-     * @throws org.exolab.castor.xml.ValidationException if any.
      */
-    protected void updateFromFile() throws IOException, MarshalException, ValidationException {
+    protected void updateFromFile()
+		    throws IOException {
         if (m_loadedFromFile) {
-            File surveillanceViewsFile = PmacctConfigFileConstants.getFile(PmacctConfigFileConstants.PMACCT_COLLECTION_CONFIG_FILE_NAME);
+            File surveillanceViewsFile 
+	       = PmacctConfigFileConstants.getFile(
+		     PmacctConfigFileConstants.PMACCT_COLLECTION_CONFIG_FILE_NAME);
             if (m_lastModified != surveillanceViewsFile.lastModified()) {
                 this.reload();
             }
@@ -153,7 +160,9 @@ public class PmacctCollectionConfigFactory {
     /**
      * <p>getConfig</p>
      *
-     * @return a {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig} object.
+     * @return a 
+     *   {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig}
+     *         object.
      */
     public synchronized static PmacctDatacollectionConfig getConfig() {
         return m_config;
@@ -162,7 +171,9 @@ public class PmacctCollectionConfigFactory {
     /**
      * <p>setConfig</p>
      *
-     * @param m_config a {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig} object.
+     * @param m_config a 
+     * {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctDatacollectionConfig}
+     *        object.
      */
     public synchronized static void setConfig(PmacctDatacollectionConfig m_config) {
         PmacctCollectionConfigFactory.m_config = m_config;
@@ -172,7 +183,9 @@ public class PmacctCollectionConfigFactory {
      * <p>getPmacctCollection</p>
      *
      * @param collectionName a {@link java.lang.String} object.
-     * @return a {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctCollection} object.
+     * @return a 
+     * {@link org.opennms.netmgt.config.pmacctdatacollection.PmacctCollection} i
+     *        object.
      */
     public PmacctCollection getPmacctCollection(String collectionName) {
         List<PmacctCollection> collections = m_config.getPmacctCollectionCollection();
@@ -184,8 +197,10 @@ public class PmacctCollectionConfigFactory {
             }
         }
         if (collection == null) {
-            throw new IllegalArgumentException("getPmacctCollection: collection name: "
-                                                       +collectionName+" specified in collectd configuration not found in pmacct collection configuration.");
+            throw new IllegalArgumentException(
+		"getPmacctCollection: collection name: " + collectionName +
+		" specified in collectd configuration " +
+		" not found in pmacct collection configuration.");
         }
         return collection;
     }
